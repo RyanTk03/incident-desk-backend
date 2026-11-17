@@ -44,6 +44,8 @@ public class SecurityConfig {
                         .requestMatchers(antMatcher("/api/**")).authenticated()
                         .anyRequest().authenticated()
                 )
+                // la console h2 s'affiche dans une iframe
+                .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
