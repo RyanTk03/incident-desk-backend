@@ -30,6 +30,8 @@ import static org.springframework.security.web.util.matcher.AntPathRequestMatche
 public class SecurityConfig {
 
     private final JwtFilter jwtFilter;
+    private final JwtAuthEntryPoint authEntryPoint;
+    private final CustomAccessDeniedHandler accessDeniedHandler;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -43,6 +45,10 @@ public class SecurityConfig {
                         .requestMatchers(antMatcher("/api/admin/**")).hasRole("ADMIN")
                         .requestMatchers(antMatcher("/api/**")).authenticated()
                         .anyRequest().authenticated()
+                )
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint(authEntryPoint)
+                        .accessDeniedHandler(accessDeniedHandler)
                 )
                 // la console h2 s'affiche dans une iframe
                 .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
