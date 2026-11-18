@@ -5,6 +5,7 @@ import com.example.incidents.dto.LoginRequest;
 import com.example.incidents.dto.RegisterRequest;
 import com.example.incidents.entity.Role;
 import com.example.incidents.entity.User;
+import com.example.incidents.exception.EmailAlreadyUsedException;
 import com.example.incidents.repository.UserRepository;
 import com.example.incidents.security.JwtService;
 import lombok.RequiredArgsConstructor;
@@ -24,7 +25,7 @@ public class AuthService {
 
     public void register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Email deja utilise");
+            throw new EmailAlreadyUsedException(request.getEmail());
         }
 
         User user = User.builder()
