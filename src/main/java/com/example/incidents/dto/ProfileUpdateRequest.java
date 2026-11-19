@@ -1,0 +1,16 @@
+package com.example.incidents.dto;
+
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import lombok.Data;
+
+@Data
+public class ProfileUpdateRequest {
+
+    @NotBlank(message = "Le nom est obligatoire")
+    private String fullName;
+
+    @NotBlank(message = "L'email est obligatoire")
+    @Email(message = "Email invalide")
+    private String email;
+}
