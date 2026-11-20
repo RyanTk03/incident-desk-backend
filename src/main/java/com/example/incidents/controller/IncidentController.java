@@ -30,4 +30,10 @@ public class IncidentController {
     public List<IncidentResponse> getMyIncidents() {
         return incidentService.getMyIncidents();
     }
+
+    // le controle proprietaire / technicien affecte est fait dans le service
+    @GetMapping("/{id}")
+    public IncidentResponse getById(@PathVariable Long id) {
+        return incidentService.getById(id);
+    }
 }

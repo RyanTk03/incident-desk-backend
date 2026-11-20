@@ -4,10 +4,13 @@ import com.example.incidents.dto.IncidentRequest;
 import com.example.incidents.dto.IncidentResponse;
 import com.example.incidents.entity.Category;
 import com.example.incidents.entity.Incident;
+import com.example.incidents.entity.Role;
 import com.example.incidents.entity.Status;
 import com.example.incidents.entity.User;
+import com.example.incidents.exception.ResourceNotFoundException;
 import com.example.incidents.repository.IncidentRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,5 +46,42 @@ public class IncidentService {
                 .stream()
                 .map(IncidentResponse::from)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public IncidentResponse getById(Long id) {
+        Incident incident = findIncident(id);
+        checkCanView(incident, userService.getCurrentUser());
+        return IncidentResponse.from(incident);
+    }
+
+    // ---------- methodes utilitaires ----------
+
+    private Incident findIncident(Long id) {
+        return incidentRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Incident introuvable"));
+    }
+
+    /**
+     * Verification cote backend (masquer le bouton dans React ne suffit pas) :
+     * - ADMIN : tout
+     * - EMPLOYEE : seulement ses incidents
+     * - TECHNICIAN : seulement les incidents qui lui sont affectes
+     */
+    private void checkCanView(Incident incident, User user) {
+        if (user.getRole() == Role.ADMIN) {
+            return;
+        }
+        if (user.getRole() == Role.EMPLOYEE && incident.getCreatedBy().getId().equals(user.getId())) {
+            return;
+        }
+        if (user.getRole() == Role.TECHNICIAN && isAssignedTo(incident, user)) {
+            return;
+        }
+        throw new AccessDeniedException("Vous n'avez pas acces a cet incident");
+    }
+
+    private boolean isAssignedTo(Incident incident, User technician) {
+        return incident.getAssignedTo() != null && incident.getAssignedTo().getId().equals(technician.getId());
     }
 }
