@@ -2,6 +2,7 @@ package com.example.incidents.controller;
 
 import com.example.incidents.dto.IncidentRequest;
 import com.example.incidents.dto.IncidentResponse;
+import com.example.incidents.dto.StatusRequest;
 import com.example.incidents.service.IncidentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +30,18 @@ public class IncidentController {
     @PreAuthorize("hasRole('EMPLOYEE')")
     public List<IncidentResponse> getMyIncidents() {
         return incidentService.getMyIncidents();
+    }
+
+    @GetMapping("/assigned")
+    @PreAuthorize("hasRole('TECHNICIAN')")
+    public List<IncidentResponse> getAssignedIncidents() {
+        return incidentService.getAssignedIncidents();
+    }
+
+    @PutMapping("/{id}/status")
+    @PreAuthorize("hasAnyRole('TECHNICIAN', 'ADMIN')")
+    public IncidentResponse updateStatus(@PathVariable Long id, @Valid @RequestBody StatusRequest request) {
+        return incidentService.updateStatus(id, request.getStatus());
     }
 
     // le controle proprietaire / technicien affecte est fait dans le service

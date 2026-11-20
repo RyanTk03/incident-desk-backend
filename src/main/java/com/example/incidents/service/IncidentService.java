@@ -55,6 +55,28 @@ public class IncidentService {
         return IncidentResponse.from(incident);
     }
 
+    @Transactional(readOnly = true)
+    public List<IncidentResponse> getAssignedIncidents() {
+        User technician = userService.getCurrentUser();
+        return incidentRepository.findByAssignedToOrderByCreatedAtDesc(technician)
+                .stream()
+                .map(IncidentResponse::from)
+                .toList();
+    }
+
+    public IncidentResponse updateStatus(Long id, Status newStatus) {
+        Incident incident = findIncident(id);
+        User user = userService.getCurrentUser();
+
+        // un technicien ne peut modifier que les incidents qui lui sont affectes
+        if (user.getRole() == Role.TECHNICIAN && !isAssignedTo(incident, user)) {
+            throw new AccessDeniedException("Cet incident ne vous est pas affecte");
+        }
+
+        incident.setStatus(newStatus);
+        return IncidentResponse.from(incidentRepository.save(incident));
+    }
+
     // ---------- methodes utilitaires ----------
 
     private Incident findIncident(Long id) {
