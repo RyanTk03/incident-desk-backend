@@ -44,6 +44,18 @@ public class IncidentController {
         return incidentService.updateStatus(id, request.getStatus());
     }
 
+    @PutMapping("/{id}/assign/{technicianId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public IncidentResponse assign(@PathVariable Long id, @PathVariable Long technicianId) {
+        return incidentService.assign(id, technicianId);
+    }
+
+    @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<IncidentResponse> getAll() {
+        return incidentService.getAll();
+    }
+
     // le controle proprietaire / technicien affecte est fait dans le service
     @GetMapping("/{id}")
     public IncidentResponse getById(@PathVariable Long id) {

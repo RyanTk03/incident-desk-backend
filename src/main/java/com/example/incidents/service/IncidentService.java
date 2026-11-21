@@ -7,8 +7,10 @@ import com.example.incidents.entity.Incident;
 import com.example.incidents.entity.Role;
 import com.example.incidents.entity.Status;
 import com.example.incidents.entity.User;
+import com.example.incidents.exception.BadRequestException;
 import com.example.incidents.exception.ResourceNotFoundException;
 import com.example.incidents.repository.IncidentRepository;
+import com.example.incidents.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -23,6 +25,7 @@ public class IncidentService {
 
     private final IncidentRepository incidentRepository;
     private final UserService userService;
+    private final UserRepository userRepository;
 
     public IncidentResponse create(IncidentRequest request) {
         User currentUser = userService.getCurrentUser();
@@ -74,6 +77,38 @@ public class IncidentService {
         }
 
         incident.setStatus(newStatus);
+        return IncidentResponse.from(incidentRepository.save(incident));
+    }
+
+    // ---------- ADMIN ----------
+
+    @Transactional(readOnly = true)
+    public List<IncidentResponse> getAll() {
+        return incidentRepository.findAllByOrderByCreatedAtDesc()
+                .stream()
+                .map(IncidentResponse::from)
+                .toList();
+    }
+
+    public IncidentResponse assign(Long incidentId, Long technicianId) {
+        Incident incident = findIncident(incidentId);
+        User technician = userRepository.findById(technicianId)
+                .orElseThrow(() -> new ResourceNotFoundException("Technicien introuvable"));
+
+        if (technician.getRole() != Role.TECHNICIAN) {
+            throw new BadRequestException("L'utilisateur choisi n'est pas un technicien");
+        }
+        if (!technician.isEnabled()) {
+            throw new BadRequestException("Ce technicien est desactive");
+        }
+        if (incident.getStatus() == Status.CLOSED) {
+            throw new BadRequestException("Impossible d'affecter un incident ferme");
+        }
+
+        incident.setAssignedTo(technician);
+        if (incident.getStatus() == Status.OPEN) {
+            incident.setStatus(Status.ASSIGNED);
+        }
         return IncidentResponse.from(incidentRepository.save(incident));
     }
 
