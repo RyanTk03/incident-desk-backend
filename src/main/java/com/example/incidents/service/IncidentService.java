@@ -1,16 +1,19 @@
 package com.example.incidents.service;
 
+import com.example.incidents.dto.CommentResponse;
 import com.example.incidents.dto.HistoryResponse;
 import com.example.incidents.dto.IncidentRequest;
 import com.example.incidents.dto.IncidentResponse;
 import com.example.incidents.entity.Category;
 import com.example.incidents.entity.Incident;
+import com.example.incidents.entity.IncidentComment;
 import com.example.incidents.entity.IncidentHistory;
 import com.example.incidents.entity.Role;
 import com.example.incidents.entity.Status;
 import com.example.incidents.entity.User;
 import com.example.incidents.exception.BadRequestException;
 import com.example.incidents.exception.ResourceNotFoundException;
+import com.example.incidents.repository.IncidentCommentRepository;
 import com.example.incidents.repository.IncidentHistoryRepository;
 import com.example.incidents.repository.IncidentRepository;
 import com.example.incidents.repository.UserRepository;
@@ -30,6 +33,7 @@ public class IncidentService {
     private final UserService userService;
     private final UserRepository userRepository;
     private final IncidentHistoryRepository historyRepository;
+    private final IncidentCommentRepository commentRepository;
 
     public IncidentResponse create(IncidentRequest request) {
         User currentUser = userService.getCurrentUser();
@@ -135,6 +139,34 @@ public class IncidentService {
                 .stream()
                 .map(HistoryResponse::from)
                 .toList();
+    }
+
+    // ---------- notes de traitement ----------
+
+    @Transactional(readOnly = true)
+    public List<CommentResponse> getComments(Long incidentId) {
+        Incident incident = findIncident(incidentId);
+        checkCanView(incident, userService.getCurrentUser());
+        return commentRepository.findByIncidentOrderByCreatedAtAsc(incident)
+                .stream()
+                .map(CommentResponse::from)
+                .toList();
+    }
+
+    public CommentResponse addComment(Long incidentId, String content) {
+        Incident incident = findIncident(incidentId);
+        User technician = userService.getCurrentUser();
+
+        if (!isAssignedTo(incident, technician)) {
+            throw new AccessDeniedException("Cet incident ne vous est pas affecte");
+        }
+
+        IncidentComment comment = IncidentComment.builder()
+                .incident(incident)
+                .author(technician)
+                .content(content)
+                .build();
+        return CommentResponse.from(commentRepository.save(comment));
     }
 
     // ---------- methodes utilitaires ----------

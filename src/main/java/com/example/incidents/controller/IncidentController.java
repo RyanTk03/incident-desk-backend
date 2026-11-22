@@ -1,5 +1,7 @@
 package com.example.incidents.controller;
 
+import com.example.incidents.dto.CommentRequest;
+import com.example.incidents.dto.CommentResponse;
 import com.example.incidents.dto.HistoryResponse;
 import com.example.incidents.dto.IncidentRequest;
 import com.example.incidents.dto.IncidentResponse;
@@ -66,5 +68,16 @@ public class IncidentController {
     @GetMapping("/{id}/history")
     public List<HistoryResponse> getHistory(@PathVariable Long id) {
         return incidentService.getHistory(id);
+    }
+
+    @GetMapping("/{id}/comments")
+    public List<CommentResponse> getComments(@PathVariable Long id) {
+        return incidentService.getComments(id);
+    }
+
+    @PostMapping("/{id}/comments")
+    @PreAuthorize("hasRole('TECHNICIAN')")
+    public ResponseEntity<CommentResponse> addComment(@PathVariable Long id, @Valid @RequestBody CommentRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(incidentService.addComment(id, request.getContent()));
     }
 }
