@@ -1,5 +1,6 @@
 package com.example.incidents.controller;
 
+import com.example.incidents.dto.HistoryResponse;
 import com.example.incidents.dto.IncidentRequest;
 import com.example.incidents.dto.IncidentResponse;
 import com.example.incidents.dto.StatusRequest;
@@ -60,5 +61,10 @@ public class IncidentController {
     @GetMapping("/{id}")
     public IncidentResponse getById(@PathVariable Long id) {
         return incidentService.getById(id);
+    }
+
+    @GetMapping("/{id}/history")
+    public List<HistoryResponse> getHistory(@PathVariable Long id) {
+        return incidentService.getHistory(id);
     }
 }

@@ -1,14 +1,17 @@
 package com.example.incidents.service;
 
+import com.example.incidents.dto.HistoryResponse;
 import com.example.incidents.dto.IncidentRequest;
 import com.example.incidents.dto.IncidentResponse;
 import com.example.incidents.entity.Category;
 import com.example.incidents.entity.Incident;
+import com.example.incidents.entity.IncidentHistory;
 import com.example.incidents.entity.Role;
 import com.example.incidents.entity.Status;
 import com.example.incidents.entity.User;
 import com.example.incidents.exception.BadRequestException;
 import com.example.incidents.exception.ResourceNotFoundException;
+import com.example.incidents.repository.IncidentHistoryRepository;
 import com.example.incidents.repository.IncidentRepository;
 import com.example.incidents.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +29,7 @@ public class IncidentService {
     private final IncidentRepository incidentRepository;
     private final UserService userService;
     private final UserRepository userRepository;
+    private final IncidentHistoryRepository historyRepository;
 
     public IncidentResponse create(IncidentRequest request) {
         User currentUser = userService.getCurrentUser();
@@ -39,7 +43,9 @@ public class IncidentService {
                 .createdBy(currentUser)
                 .build();
 
-        return IncidentResponse.from(incidentRepository.save(incident));
+        incident = incidentRepository.save(incident);
+        addHistory(incident, "Incident cree", null, Status.OPEN, currentUser);
+        return IncidentResponse.from(incident);
     }
 
     @Transactional(readOnly = true)
@@ -76,8 +82,12 @@ public class IncidentService {
             throw new AccessDeniedException("Cet incident ne vous est pas affecte");
         }
 
+        Status oldStatus = incident.getStatus();
         incident.setStatus(newStatus);
-        return IncidentResponse.from(incidentRepository.save(incident));
+        incidentRepository.save(incident);
+
+        addHistory(incident, oldStatus + " -> " + newStatus, oldStatus, newStatus, user);
+        return IncidentResponse.from(incident);
     }
 
     // ---------- ADMIN ----------
@@ -105,14 +115,40 @@ public class IncidentService {
             throw new BadRequestException("Impossible d'affecter un incident ferme");
         }
 
+        Status oldStatus = incident.getStatus();
         incident.setAssignedTo(technician);
         if (incident.getStatus() == Status.OPEN) {
             incident.setStatus(Status.ASSIGNED);
         }
-        return IncidentResponse.from(incidentRepository.save(incident));
+        incidentRepository.save(incident);
+
+        addHistory(incident, "Affecte a " + technician.getFullName(), oldStatus, incident.getStatus(),
+                userService.getCurrentUser());
+        return IncidentResponse.from(incident);
+    }
+
+    @Transactional(readOnly = true)
+    public List<HistoryResponse> getHistory(Long incidentId) {
+        Incident incident = findIncident(incidentId);
+        checkCanView(incident, userService.getCurrentUser());
+        return historyRepository.findByIncidentOrderByCreatedAtAsc(incident)
+                .stream()
+                .map(HistoryResponse::from)
+                .toList();
     }
 
     // ---------- methodes utilitaires ----------
+
+    private void addHistory(Incident incident, String description, Status oldStatus, Status newStatus, User user) {
+        IncidentHistory history = IncidentHistory.builder()
+                .incident(incident)
+                .description(description)
+                .oldStatus(oldStatus)
+                .newStatus(newStatus)
+                .performedBy(user)
+                .build();
+        historyRepository.save(history);
+    }
 
     private Incident findIncident(Long id) {
         return incidentRepository.findById(id)
