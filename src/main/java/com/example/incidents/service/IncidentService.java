@@ -86,6 +86,14 @@ public class IncidentService {
             throw new AccessDeniedException("Cet incident ne vous est pas affecte");
         }
 
+        // regle metier : un incident ferme ne bouge plus
+        if (incident.getStatus() == Status.CLOSED) {
+            throw new BadRequestException("Incident ferme : le statut ne peut plus etre modifie");
+        }
+        if (incident.getStatus() == newStatus) {
+            throw new BadRequestException("L'incident a deja ce statut");
+        }
+
         Status oldStatus = incident.getStatus();
         incident.setStatus(newStatus);
         incidentRepository.save(incident);
