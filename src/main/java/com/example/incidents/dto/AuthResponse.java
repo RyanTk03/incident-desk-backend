@@ -6,7 +6,8 @@ import lombok.Data;
 @Data
 @AllArgsConstructor
 public class AuthResponse {
-    private String token;
+    private String token;        // access token (JWT, courte duree)
+    private String refreshToken; // pour obtenir un nouvel access token
     private String role;
     private String fullName;
 }
