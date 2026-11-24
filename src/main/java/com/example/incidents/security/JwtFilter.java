@@ -43,6 +43,12 @@ public class JwtFilter extends OncePerRequestFilter {
                 String email = jwtService.extractEmail(token);
                 UserDetails userDetails = userDetailsService.loadUserByUsername(email);
 
+                // compte desactive par l'admin -> le token ne doit plus marcher
+                if (!userDetails.isEnabled()) {
+                    filterChain.doFilter(request, response);
+                    return;
+                }
+
                 UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
                         userDetails, null, userDetails.getAuthorities());
                 auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
