@@ -5,6 +5,7 @@ import com.example.incidents.dto.ProfileUpdateRequest;
 import com.example.incidents.dto.UserResponse;
 import com.example.incidents.entity.User;
 import com.example.incidents.exception.BadRequestException;
+import com.example.incidents.exception.EmailAlreadyUsedException;
 import com.example.incidents.exception.ResourceNotFoundException;
 import com.example.incidents.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +38,14 @@ public class UserService {
 
     public UserResponse updateProfile(ProfileUpdateRequest request) {
         User user = getCurrentUser();
+
+        boolean emailChanged = !user.getEmail().equalsIgnoreCase(request.getEmail());
+        if (emailChanged && userRepository.existsByEmail(request.getEmail())) {
+            throw new EmailAlreadyUsedException(request.getEmail());
+        }
+        // NB: si l'email change, l'ancien JWT (subject = ancien email) ne marche plus,
+        // le front passe alors par /auth/refresh pour en avoir un nouveau
+
         user.setFullName(request.getFullName());
         user.setEmail(request.getEmail());
         return UserResponse.from(userRepository.save(user));
