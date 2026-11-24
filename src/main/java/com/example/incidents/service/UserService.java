@@ -1,13 +1,16 @@
 package com.example.incidents.service;
 
+import com.example.incidents.dto.ChangePasswordRequest;
 import com.example.incidents.dto.ProfileUpdateRequest;
 import com.example.incidents.dto.UserResponse;
 import com.example.incidents.entity.User;
+import com.example.incidents.exception.BadRequestException;
 import com.example.incidents.exception.ResourceNotFoundException;
 import com.example.incidents.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -15,6 +18,7 @@ import org.springframework.stereotype.Service;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     /**
      * Recupere l'utilisateur connecte a partir du SecurityContext
@@ -36,5 +40,20 @@ public class UserService {
         user.setFullName(request.getFullName());
         user.setEmail(request.getEmail());
         return UserResponse.from(userRepository.save(user));
+    }
+
+    public void changePassword(ChangePasswordRequest request) {
+        User user = getCurrentUser();
+
+        // on verifie l'ancien mot de passe avant tout
+        if (!passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
+            throw new BadRequestException("Ancien mot de passe incorrect");
+        }
+        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+            throw new BadRequestException("La confirmation ne correspond pas au nouveau mot de passe");
+        }
+
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
     }
 }
