@@ -56,7 +56,7 @@ public class AuthService {
         return new AuthResponse(token, refreshToken.getToken(), user.getRole().name(), user.getFullName());
     }
 
-    @Transactional
+    @Transactional(noRollbackFor = InvalidTokenException.class)
     public AuthResponse refresh(RefreshRequest request) {
         RefreshToken refreshToken = refreshTokenService.verify(request.getRefreshToken());
         User user = refreshToken.getUser();

@@ -14,7 +14,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
-@Transactional
+@Transactional(noRollbackFor = InvalidTokenException.class) // sinon la suppression du token expire est annulee
 public class RefreshTokenService {
 
     private final RefreshTokenRepository refreshTokenRepository;
